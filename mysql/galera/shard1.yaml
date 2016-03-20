@@ -1,0 +1,62 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: shard1
+  labels:
+    app: mysql
+    name: shard1
+spec:
+  ports:
+    - port: 3306
+      name: mysql
+    - port: 4444
+      name: state-snapshot-transfer
+    - port: 4567
+      name: replication-traffic
+    - port: 4568
+      name: incremental-state-transfer
+  selector:
+    name: shard1
+---
+apiVersion: v1
+kind: ReplicationController
+metadata:
+  name: shard1
+  labels:
+    app: mysql
+spec:
+  replicas: 1
+  template:
+    metadata:
+      labels:
+        app: mysql
+        name: shard1
+    spec:
+      containers:
+        - image: bprashanth/mysql-galera:0.1
+          imagePullPolicy: Always
+          name: shard1
+          ports:
+            - containerPort: 3306
+            - containerPort: 4444
+            - containerPort: 4567
+            - containerPort: 4568
+          command:
+            - sh
+            - -c
+            - "/entrypoint.sh mysqld"
+          env:
+            - name: GALERA_CLUSTER
+              value: "true"
+            - name: WSREP_CLUSTER_ADDRESS
+              value: gcomm://
+            - name: WSREP_SST_USER
+              value: sst
+            - name: WSREP_SST_PASSWORD
+              value: sst
+            - name: MYSQL_USER
+              value: mysql
+            - name: MYSQL_PASSWORD
+              value: mysql
+            - name: MYSQL_ROOT_PASSWORD
+              value: autotest
