@@ -1,0 +1,102 @@
+# A headless service to create DNS records
+apiVersion: v1
+kind: Service
+metadata:
+  name: zk
+  labels:
+    app: zookeeper
+spec:
+  # We really don't care about ports
+  ports:
+  - port: 2888
+    name: peer
+  - port: 3888
+    name: leader-election
+  # *.zk.default.svc.cluster.local
+  clusterIP: None
+  selector:
+    app: zookeeper
+---
+# First quorum member
+apiVersion: v1
+kind: ReplicationController
+metadata:
+  name: zk-server1
+  labels:
+    app: zookeeper
+spec:
+  replicas: 1
+  selector:
+    id: zk-server1
+  template:
+    metadata:
+      annotations:
+        # s1.zk.default.svc.cluster.local
+        pod.beta.kubernetes.io/hostname: s1
+        pod.beta.kubernetes.io/subdomain: zk
+      labels:
+        app: zookeeper
+        id: zk-server1
+    spec:
+      # Node label only needed because we're using local storage.
+      # Run `kubectl label node foo role=server1` to set.
+      nodeSelector:
+        role: server1
+      containers:
+      - image: jplock/zookeeper
+        imagePullPolicy: Always
+        name: zookeeper
+        # Replace with more robust code to grow/shrink members.
+        command:
+          - sh
+          - -c
+          - "echo -e \"server.1=s1.zk.default.svc.cluster.local:2888:3888\nserver.2=s2.zk.default.svc.cluster.local:2888:3888\n\" >> /opt/zookeeper/conf/zoo.cfg; \
+             mkdir -p /tmp/zookeeper; echo 1 > /tmp/zookeeper/myid; \
+             /opt/zookeeper/bin/zkServer.sh start-foreground"
+        ports:
+        - containerPort: 2888
+          name: peer
+        - containerPort: 3888
+          name: leader-election
+---
+# Second quorum member
+apiVersion: v1
+kind: ReplicationController
+metadata:
+  name: zk-server2
+  labels:
+    app: zookeeper
+spec:
+  replicas: 1
+  selector:
+    id: zk-server2
+  template:
+    metadata:
+      annotations:
+        # s2.zk.default.svc.cluster.local
+        pod.beta.kubernetes.io/hostname: s2
+        pod.beta.kubernetes.io/subdomain: zk
+      labels:
+        app: zookeeper
+        id: zk-server2
+    spec:
+      # Node label only needed because we're using local storage.
+      # Run `kubectl label node foo role=server2` to set.
+      nodeSelector:
+        role: server2
+      containers:
+      - image: jplock/zookeeper
+        imagePullPolicy: Always
+        name: zookeeper
+        # Replace with more robust code to grow/shrink members.
+        command:
+          - sh
+          - -c
+          - "echo -e \"server.1=s1.zk.default.svc.cluster.local:2888:3888\nserver.2=s2.zk.default.svc.cluster.local:2888:3888\n\" >> /opt/zookeeper/conf/zoo.cfg; \
+             mkdir -p /tmp/zookeeper; echo 2 > /tmp/zookeeper/myid; \
+             /opt/zookeeper/bin/zkServer.sh start-foreground"
+        ports:
+        - containerPort: 2888
+          name: peer
+        - containerPort: 3888
+          name: leader-election
