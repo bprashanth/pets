@@ -47,17 +47,29 @@ spec:
         imagePullPolicy: Always
         name: zookeeper
         # Replace with more robust code to grow/shrink members.
+        env:
+        - name: ZK_SERVER_ID
+          value: "1"
         command:
           - sh
           - -c
           - "echo -e \"server.1=s1.zk.default.svc.cluster.local:2888:3888\nserver.2=s2.zk.default.svc.cluster.local:2888:3888\n\" >> /opt/zookeeper/conf/zoo.cfg; \
-             mkdir -p /tmp/zookeeper; echo 1 > /tmp/zookeeper/myid; \
+             mkdir -p /tmp/zookeeper; echo ${ZK_SERVER_ID} > /tmp/zookeeper/myid; \
              /opt/zookeeper/bin/zkServer.sh start-foreground"
+        # For this to be useful the pod needs to land on the same node everytime,
+        # this will happen because of the node label.
+        volumeMounts:
+        - name: datadir
+          mountPath: /tmp/zookeeper
         ports:
         - containerPort: 2888
           name: peer
         - containerPort: 3888
           name: leader-election
+      volumes:
+      - name: datadir
+        hostPath:
+          path: /var/lib/zookeeper
 ---
 # Second quorum member
 apiVersion: v1
@@ -89,14 +101,26 @@ spec:
         imagePullPolicy: Always
         name: zookeeper
         # Replace with more robust code to grow/shrink members.
+        env:
+        - name: ZK_SERVER_ID
+          value: "2"
         command:
           - sh
           - -c
           - "echo -e \"server.1=s1.zk.default.svc.cluster.local:2888:3888\nserver.2=s2.zk.default.svc.cluster.local:2888:3888\n\" >> /opt/zookeeper/conf/zoo.cfg; \
-             mkdir -p /tmp/zookeeper; echo 2 > /tmp/zookeeper/myid; \
+             mkdir -p /tmp/zookeeper; echo ${ZK_SERVER_ID} > /tmp/zookeeper/myid; \
              /opt/zookeeper/bin/zkServer.sh start-foreground"
+        # For this to be useful the pod needs to land on the same node everytime,
+        # this will happene because of the node label.
+        volumeMounts:
+        - name: datadir
+          mountPath: /tmp/zookeeper
         ports:
         - containerPort: 2888
           name: peer
         - containerPort: 3888
           name: leader-election
+      volumes:
+      - name: datadir
+        hostPath:
+          path: /var/lib/zookeeper
