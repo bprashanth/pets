@@ -13,7 +13,7 @@ This will create a zookeeper ensemble statically configured. Killing a pod will 
 
 ### Running zookeeper: controller
 
-You can also run the controller, if you have some recent version of Kubernetes (since it requires the kubernetes api/client package):
+You can also run the controller, if you have some recent version of Kubernetes (since it requires the kubernetes api/client package). It doesn't require static node labelling:
 ```
 $ go build main.go
 $ ./main
@@ -21,7 +21,7 @@ $ ./main
 $ curl localhost:8080/scale?replicas=3
 ```
 
-Every scale event will cause a destruction and reconstruction of the entire ensemble, but the members will come up with the same data.
+Every scale event will cause a destruction and reconstruction of the entire ensemble, but the members will come up with the same data. Don't try and run 2 controllers simultaneously. 
 
 ## Notes on zookeeper
 
