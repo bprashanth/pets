@@ -324,7 +324,6 @@ func main() {
 		}
 
 	}
-	// TODO: Create zookeeper service.
 
 	counter := &lockedCount{count: *replicas}
 	http.HandleFunc("/scale", func(w http.ResponseWriter, r *http.Request) {
